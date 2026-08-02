@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 
 public class MetaballController : MonoBehaviour {
@@ -27,7 +28,7 @@ public class MetaballController : MonoBehaviour {
 	const float SPHERE_FORCE_RADIUS = SPHERE_RADIUS * 3f;  // 球の引力・斥力等の影響半径
 	const int GRID_DIVISION = 64; // グリッドの単一軸方向の分割数
 
-	int sphereCount = 4096;
+	int sphereCount = 8192;
 	GameObject[] sphereObjects = new GameObject[MAX_SPHERE_COUNT];
 	Rigidbody[] sphereRigidbodies = new Rigidbody[MAX_SPHERE_COUNT];
 	SphereCollider[] sphereColliders = new SphereCollider[MAX_SPHERE_COUNT];
@@ -109,18 +110,25 @@ public class MetaballController : MonoBehaviour {
 
 		// グリッド初期化
 		stopwatch.Restart();
-		for (int i = 0; i < sortedSpheres.Length; i++) {
+		Parallel.For(0, sortedSpheres.Length, i => {
+			if (sortedSpheres[i] == null) {
+				sortedSpheres[i] = new List<int>();
+			}
+			sortedSpheres[i].Clear();
+		});
+		/*for (int i = 0; i < sortedSpheres.Length; i++) {
 			if (sortedSpheres[i] == null) {
 				sortedSpheres[i] = new List<int>();
 			}
 			sortedSpheres[i].Clear();
 		}
+		*/
 		stopwatch.Stop();
 		logText += "グリッド初期化処理の時間 : " + stopwatch.Elapsed.TotalMilliseconds + " ms\n";
 
 		// グリッド格納処理
 		stopwatch.Restart();
-		for (int i = 0; i < sphereCount; i++) {
+		Parallel.For(0, sphereCount, i => {
 			// グリッド内セルIDの特定
 			Vector3 positionInGrid = spherePositions[i] - min;
 			int x = Mathf.Clamp((int)(positionInGrid.x / gridCellSize.x), 0, GRID_DIVISION - 1);
@@ -130,14 +138,14 @@ public class MetaballController : MonoBehaviour {
 
 			// セルに追加
 			sortedSpheres[cellIndex].Add(i);
-		}
+		});
 		stopwatch.Stop();
 		logText += "グリッド格納処理の時間 : " + stopwatch.Elapsed.TotalMilliseconds + " ms\n";
 
 		stopwatch.Restart();
 		int maxLoopCount = 0;
 		int actualPairCount = 0;
-		for (int i = 0; i < sphereCount; i++) {
+		Parallel.For(0, sphereCount, i => {
 			// グリッド内セルIDの特定
 			Vector3 positionInGrid = spherePositions[i] - min;
 			int x = Mathf.Clamp((int)(positionInGrid.x / gridCellSize.x), 0, GRID_DIVISION - 1);
@@ -240,7 +248,7 @@ public class MetaballController : MonoBehaviour {
 					}
 				}
 			}
-		}
+		});
 		stopwatch.Stop();
 		logText += "引力・斥力発生処理の時間       : " + stopwatch.Elapsed.TotalMilliseconds + " ms\n";
 		logText += "引力・斥力発生候補のペア数     : " + maxLoopCount + " 個\n";
