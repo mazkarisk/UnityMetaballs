@@ -61,7 +61,7 @@ float3 getNormal(const float3 pos, int stakeholdersIndices[MAX_STAKEHOLDERS_COUN
 /* Shader Graphからのエントリーポイント */
 /****************************************/
 
-void Metaball_float(
+void Metaballs_float(
 		float3 CameraPosition,
 		float3 CameraDirection,
 		float3 FragmentPosition,

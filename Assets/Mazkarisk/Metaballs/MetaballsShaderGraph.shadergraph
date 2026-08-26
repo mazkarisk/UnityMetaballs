@@ -1775,7 +1775,7 @@
     "m_Group": {
         "m_Id": ""
     },
-    "m_Name": "Metaball (Custom Function)",
+    "m_Name": "Metaballs (Custom Function)",
     "m_DrawState": {
         "m_Expanded": true,
         "m_Position": {
@@ -1827,7 +1827,7 @@
         "m_SerializableColors": []
     },
     "m_SourceType": 0,
-    "m_FunctionName": "Metaball",
+    "m_FunctionName": "Metaballs",
     "m_FunctionSource": "860a74a83c7b20544a32974a1e3b755c",
     "m_FunctionSourceUsePragmas": true,
     "m_FunctionBody": "Enter function body here..."
