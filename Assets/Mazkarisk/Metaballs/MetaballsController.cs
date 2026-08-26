@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
 
-public class MetaballController : MonoBehaviour {
+public class MetaballsController : MonoBehaviour {
 
 	private const int MAX_SPHERE_COUNT = 65536; // 球の最大個数（シェーダー側と合わせる）
 
