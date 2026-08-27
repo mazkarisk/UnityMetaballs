@@ -39,16 +39,18 @@ public class MetaballsController : MonoBehaviour {
 	Vector3[] sphereAccelerations = new Vector3[MAX_SPHERE_COUNT];
 
 	void Start() {
+		// メタボール(単体)のプレハブを読み込む。
+		GameObject metaballPrefab = (GameObject)Resources.Load("Metaball");
+
 		GetComponent<MeshFilter>().sharedMesh = CreateMeshForFullScreenEffect();
 		GetComponent<MeshRenderer>().material = material;
 
-		// 球の設定
+		// メタボールの設定
 		for (var i = 0; i < sphereCount; i++) {
-			sphereObjects[i] = new GameObject("MetaballSphere" + i);
-			sphereObjects[i].transform.parent = transform;
-			sphereColliders[i] = sphereObjects[i].AddComponent<SphereCollider>();
-			sphereColliders[i].radius = SPHERE_RADIUS * 0.5f; // 当たり判定の半径は半分にしておく
-			sphereRigidbodies[i] = sphereObjects[i].AddComponent<Rigidbody>();
+			sphereObjects[i] = Instantiate(metaballPrefab, transform);
+			Metaball metaballComponent = sphereObjects[i].GetComponent<Metaball>();
+			metaballComponent.setAttributes(SPHERE_RADIUS, 1000f);
+			sphereRigidbodies[i] = sphereObjects[i].GetComponent<Rigidbody>();
 			RespawnBall(i);
 		}
 
