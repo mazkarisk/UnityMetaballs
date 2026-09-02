@@ -25,13 +25,13 @@ public class MetaballsController : MonoBehaviour {
 
 	// 物理演算用
 	const float SPHERE_RADIUS = 0.02f;  // 球の表示上の半径
-	const float SPHERE_FORCE_RADIUS = SPHERE_RADIUS * 3f;  // 球の引力・斥力等の影響半径
+	const float SPHERE_FORCE_RADIUS = SPHERE_RADIUS * 4f;  // 球の引力・斥力等の影響半径
 	const int GRID_DIVISION = 64; // グリッドの単一軸方向の分割数
+	const float MAX_ACCELERATION_BY_PRESSURE = 100f; // 圧力シミュレート時の最大加速度
 
 	int sphereCount = 8192;
 	GameObject[] sphereObjects = new GameObject[MAX_SPHERE_COUNT];
 	Rigidbody[] sphereRigidbodies = new Rigidbody[MAX_SPHERE_COUNT];
-	SphereCollider[] sphereColliders = new SphereCollider[MAX_SPHERE_COUNT];
 
 	List<int>[] sortedSpheres = new List<int>[GRID_DIVISION * GRID_DIVISION * GRID_DIVISION];
 	Vector3[] spherePositions = new Vector3[MAX_SPHERE_COUNT];
@@ -118,13 +118,6 @@ public class MetaballsController : MonoBehaviour {
 			}
 			sortedSpheres[i].Clear();
 		});
-		/*for (int i = 0; i < sortedSpheres.Length; i++) {
-			if (sortedSpheres[i] == null) {
-				sortedSpheres[i] = new List<int>();
-			}
-			sortedSpheres[i].Clear();
-		}
-		*/
 		stopwatch.Stop();
 		logText += "グリッド初期化処理の時間 : " + stopwatch.Elapsed.TotalMilliseconds + " ms\n";
 
@@ -196,9 +189,9 @@ public class MetaballsController : MonoBehaviour {
 						}
 						for (int j = 0; j < sortedSpheres[cellIndex].Count; j++) {
 							maxLoopCount++;
-
 							int myIndex = i;
 							int otherIndex = sortedSpheres[cellIndex][j];
+
 							// 自分自身は対象外とする
 							if (myIndex == otherIndex) {
 								continue;
@@ -206,6 +199,7 @@ public class MetaballsController : MonoBehaviour {
 
 							Vector3 diff = spherePositions[otherIndex] - spherePositions[myIndex];
 
+							// 影響範囲内かの判定
 							if (Mathf.Abs(diff.x) > SPHERE_FORCE_RADIUS) {
 								continue;
 							}
@@ -215,16 +209,15 @@ public class MetaballsController : MonoBehaviour {
 							if (Mathf.Abs(diff.z) > SPHERE_FORCE_RADIUS) {
 								continue;
 							}
-
-							float magnitude = diff.magnitude;
-							if (magnitude > SPHERE_FORCE_RADIUS) {
+							if (diff.sqrMagnitude > SPHERE_FORCE_RADIUS * SPHERE_FORCE_RADIUS) {
 								continue;
 							}
 
 							actualPairCount++;
 
 							Vector3 normalized = diff.normalized;
-							float influence = 1f - magnitude / SPHERE_FORCE_RADIUS;
+							float magnitude = diff.magnitude;
+							float standardizedMagnitude = magnitude / SPHERE_RADIUS; // 距離が半径の何倍かを表す数。各種加速度の計算に使用する。
 
 							Vector3 acceleration = sphereAccelerations[myIndex];
 							if (acceleration == null) {
@@ -232,20 +225,29 @@ public class MetaballsController : MonoBehaviour {
 							}
 
 							// 圧力をシミュレート(離れるように加速させる)
-							acceleration += normalized * -(influence * influence * influence * influence * influence * influence) * 500f;
+							if (standardizedMagnitude <= 1) {
+								acceleration += -normalized * MAX_ACCELERATION_BY_PRESSURE * 1f;
+							} else if (standardizedMagnitude < 2) {
+								float pressureInfluence = 2 / (standardizedMagnitude - 1) + 2;
+								if (pressureInfluence >= MAX_ACCELERATION_BY_PRESSURE) {
+									acceleration += -normalized * MAX_ACCELERATION_BY_PRESSURE * 1f;
+								} else {
+									acceleration += -normalized * pressureInfluence * 1f;
+								}
+							}
 
-							// 表面張力をシミュレート(距離を一定に保つよう加速させる)
-							if (magnitude > SPHERE_RADIUS * 2) {
-								float intersurfaceStandardizedDistance = (magnitude - SPHERE_RADIUS * 2) / (SPHERE_FORCE_RADIUS - SPHERE_RADIUS * 2);
-								acceleration += normalized * (intersurfaceStandardizedDistance * intersurfaceStandardizedDistance) * 2f;
+							// 表面張力をシミュレート(離れないように加速させる)
+							if (standardizedMagnitude > 2) {
+								float surfaceTensionInfluence = 1 - (standardizedMagnitude - 3) * (standardizedMagnitude - 3);
+								acceleration += normalized * surfaceTensionInfluence * 1f;
 							}
 
 							// 粘性をシミュレート(速度差を打ち消すように加速させる)
+							float viscosityInfluence = (4f - standardizedMagnitude) / 4f;
 							Vector3 velocityDiff = sphereVelocities[otherIndex] - sphereVelocities[myIndex];
-							acceleration += velocityDiff * influence * 20f;
+							acceleration += velocityDiff * viscosityInfluence * 20f;
 
 							sphereAccelerations[myIndex] = acceleration;
-
 						}
 					}
 				}
